@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b111b">
+    <title>Return Details | ReturnIQ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="app-shell">
+
+    <aside class="sidebar" id="sidebar">
+        <a class="brand" href="/">
+            <span class="brand-symbol">R</span>
+            <span class="brand-name">Return<span>IQ</span></span>
+        </a>
+
+        <div class="workspace-label">WORKSPACE</div>
+
+        <nav class="navigation" aria-label="Main navigation">
+            <a class="nav-link" href="/">Overview</a>
+            <a class="nav-link" href="/returns">Return requests</a>
+            <a class="nav-link active" href="/returns/hb-09">Recovery analysis</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <span class="connection-dot"></span>
+            <div>
+                <strong>Application status</strong>
+                <p>Development environment</p>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-panel">
+        <header class="topbar">
+            <div class="page-context">
+                <a href="/">RETURNIQ</a>
+                <span class="context-separator">/</span>
+                <span>RETURN ANALYSIS</span>
+            </div>
+            <span class="environment-tag">DECISION SUPPORT</span>
+        </header>
+
+        <div class="page-content">
+
+            <a class="text-link" href="/returns">&larr; Back to return requests</a>
+
+            <section class="intro" id="request">
+                <div>
+                    <p class="eyebrow">RETURN REQUEST / HB-09</p>
+                    <h1>Wireless<br>headphones<span>.</span></h1>
+                    <p class="intro-copy">
+                        Compare recovery routes, assess supplier-quality signals,
+                        and review the proposed disposition before making a decision.
+                    </p>
+                </div>
+
+                <div class="intro-meta">
+                    <span class="meta-line"></span>
+                    <p>REFERENCE / HB-09</p>
+                    <p>STATUS / {{ status | upper }}</p>
+                </div>
+            </section>
+
+            <section class="metric-grid" aria-label="Return metrics">
+
+                <article class="metric-card">
+                    <p class="metric-label">RETURN QUANTITY</p>
+                    <div class="metric-value">{{ total_quantity }}</div>
+                    <p class="metric-note">Total returned units</p>
+                </article>
+
+                <article class="metric-card">
+                    <p class="metric-label">UNIT COST</p>
+                    <div class="metric-value">₹{{ "{:,.0f}".format(cost_price) }}</div>
+                    <p class="metric-note">Original cost per unit</p>
+                </article>
+
+                <article class="metric-card">
+                    <p class="metric-label">SELLING PRICE</p>
+                    <div class="metric-value">₹{{ "{:,.0f}".format(new_selling_price) }}</div>
+                    <p class="metric-note">New product selling price</p>
+                </article>
+
+                <article class="metric-card metric-highlight">
+                    <p class="metric-label">VENDOR-ELIGIBLE UNITS</p>
+                    <div class="metric-value">
+                        {{ vendor_eligible_quantity }} <span>units</span>
+                    </div>
+                    <p class="metric-note">Based on supplied eligibility inputs</p>
+                </article>
+
+            </section>
+
+            <section class="content-section" id="recovery">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">01 / RECOVERY ANALYSIS</p>
+                        <h2>Compare disposition routes</h2>
+                        <p>Review the estimated financial outcome of each option.</p>
+                    </div>
+                </div>
+
+                <div class="detail-route-grid">
+
+                    <article class="detail-route">
+                        <p class="metric-label">OPTION 01</p>
+                        <h3>Vendor return</h3>
+                        <p class="muted">Credit at 60% of cost for eligible units</p>
+
+                        <div class="detail-route-value">
+                            ₹{{ "{:,.0f}".format(vendor_return.total_recovery) }}
+                        </div>
+
+                        <p class="metric-note">
+                            {{ vendor_eligible_quantity }} eligible units
+                            × ₹{{ "{:,.0f}".format(vendor_return.credit_per_unit) }}
+                            credit per unit
+                        </p>
+                    </article>
+
+                    <article class="detail-route">
+                        <p class="metric-label">OPTION 02</p>
+                        <h3>Refurbishment</h3>
+                        <p class="muted">Resale at 75% of the new selling price</p>
+
+                        <div class="detail-route-value">
+                            ₹{{ "{:,.0f}".format(refurbishment.net_recovery) }}
+                            <span>/unit</span>
+                        </div>
+
+                        <p class="metric-note">
+                            ₹{{ "{:,.0f}".format(refurbishment.refurbished_selling_price) }}
+                            resale −
+                            ₹{{ "{:,.0f}".format(refurbishment.refurbishment_cost) }}
+                            repair cost per unit
+                        </p>
+                    </article>
+
+                    <article class="detail-route">
+                        <p class="metric-label">OPTION 03</p>
+                        <h3>Liquidation</h3>
+                        <p class="muted">Recovery at 35% of product cost</p>
+
+                        <div class="detail-route-value">
+                            ₹{{ "{:,.0f}".format(liquidation.total_recovery) }}
+                        </div>
+
+                        <p class="metric-note">
+                            {{ liquidation.quantity }} units
+                            × ₹{{ "{:,.0f}".format(liquidation.recovery_per_unit) }}
+                            recovery per unit
+                        </p>
+                    </article>
+
+                </div>
+
+                <p class="detail-disclaimer">
+                    Estimates use the current calculation assumptions. They may
+                    exclude handling, logistics, demand constraints and time-to-cash.
+                    Compare routes using consistent quantity and cost assumptions.
+                </p>
+            </section>
+
+            <section class="content-section" id="supplier">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">02 / SUPPLIER QUALITY</p>
+                        <h2>Batch investigation</h2>
+                        <p>Investigate repeated faults before final disposition.</p>
+                    </div>
+                    <span class="status-pill">REVIEW REQUIRED</span>
+                </div>
+
+                <div class="exception-panel">
+                    <div class="exception-marker"></div>
+                    <div class="exception-copy">
+                        <h3>Repeated fault reports in HB-09</h3>
+                        <p>
+                            The supplied challenge scenario reports that 70% of
+                            returned units have the same fault. This is a signal
+                            to investigate, not proof of a supplier defect.
+                            Validate inspection records and batch-level evidence
+                            before raising a quality claim.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="content-section" id="decision">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">03 / DECISION REVIEW</p>
+                        <h2>Proposed allocation</h2>
+                        <p>Review the suggested allocation before taking action.</p>
+                    </div>
+                </div>
+
+                <div class="approval-panel">
+                    <div>
+                        <h3>Recovery allocation estimate</h3>
+
+                        <p class="muted">
+                            Vendor return: {{ vendor_eligible_quantity }} units.
+                            Refurbishment: {{ refurbishment_quantity }} units.
+                        </p>
+
+                        <p class="muted">
+                            Estimated combined recovery:
+                            <strong>
+                                ₹{{ "{:,.0f}".format(allocation_recovery.total_recovery) }}
+                            </strong>
+                        </p>
+                    </div>
+
+                    <span class="status-pill">
+                        {{ status | upper }}
+                    </span>
+                </div>
+
+                {% if status | lower == 'pending' %}
+
+                <div class="approval-panel">
+                    <div>
+                        <h3>Review this request</h3>
+                        <p class="muted">
+                            Check the recovery estimates and supplier-quality
+                            information before recording your decision.
+                        </p>
+                    </div>
+
+                    <div class="decision-actions">
+
+                        <form
+                            method="POST"
+                            action="{{ url_for('review_return', return_id=return_id) }}"
+                            onsubmit="return confirm('Are you sure you want to approve this return request?');"
+                        >
+                            <input type="hidden" name="action" value="approve">
+                            <button type="submit" class="btn btn-primary">
+                                Approve request
+                            </button>
+                        </form>
+
+                        <form
+                            method="POST"
+                            action="{{ url_for('review_return', return_id=return_id) }}"
+                            onsubmit="return confirm('Are you sure you want to reject this return request?');"
+                        >
+                            <input type="hidden" name="action" value="reject">
+                            <button type="submit" class="btn btn-secondary">
+                                Reject request
+                            </button>
+                        </form>
+
+                    </div>
+                </div>
+
+                {% elif status | lower == 'approved' %}
+
+                <div class="exception-panel">
+                    <div class="exception-copy">
+                        <h3>Request approved</h3>
+                        <p>
+                            This request has been approved. No further
+                            approval or rejection action is available.
+                        </p>
+                    </div>
+                </div>
+
+                {% elif status | lower == 'rejected' %}
+
+                <div class="exception-panel">
+                    <div class="exception-copy">
+                        <h3>Request rejected</h3>
+                        <p>
+                            This request has been rejected. No further
+                            approval or rejection action is available.
+                        </p>
+                    </div>
+                </div>
+
+                {% endif %}
+
+                <p class="detail-disclaimer">
+                    This is a decision-support estimate, not an executed approval
+                    of payment, inventory movement or supplier transaction.
+                </p>
+            </section>
+
+        </div>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

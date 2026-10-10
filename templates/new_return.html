@@ -1,0 +1,310 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b111b">
+    <title>New Return | ReturnIQ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="app-shell">
+
+    <aside class="sidebar" id="sidebar">
+        <a class="brand" href="/">
+            <span class="brand-symbol">R</span>
+            <span class="brand-name">Return<span>IQ</span></span>
+        </a>
+
+        <div class="workspace-label">WORKSPACE</div>
+
+        <nav class="navigation" aria-label="Main navigation">
+            <a class="nav-link" href="/">Overview</a>
+            <a class="nav-link active" href="/returns">Return requests</a>
+            <a class="nav-link" href="/returns/hb-09">Recovery analysis</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <span class="connection-dot"></span>
+            <div>
+                <strong>Application status</strong>
+                <p>Development environment</p>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-panel">
+
+        <header class="topbar">
+            <div class="page-context">
+                <a href="/">RETURNIQ</a>
+                <span class="context-separator">/</span>
+                <span>NEW RETURN</span>
+            </div>
+
+            <span class="environment-tag">RETURN INTAKE</span>
+        </header>
+
+        <div class="page-content">
+
+            <a class="text-link" href="/returns">&larr; Back to return requests</a>
+
+            <section class="intro">
+                <div>
+                    <p class="eyebrow">RETURN MANAGEMENT / INTAKE</p>
+                    <h1>Register a<br>return<span>.</span></h1>
+                    <p class="intro-copy">
+                        Capture product, inspection and financial details
+                        to support return recovery decisions.
+                    </p>
+                </div>
+
+                <div class="intro-meta">
+                    <span class="meta-line"></span>
+                    <p>RECORD / NEW</p>
+                    <p>STATUS / PENDING</p>
+                </div>
+            </section>
+
+            {% if errors %}
+            <section class="content-section">
+                <div class="exception-panel">
+                    <div class="exception-marker"></div>
+                    <div class="exception-copy">
+                        <h3>Review the submitted information</h3>
+                        <ul>
+                            {% for error in errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
+            <form action="{{ url_for('create_return') }}" method="POST">
+
+                <section class="content-section">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">01 / PRODUCT INFORMATION</p>
+                            <h2>Identify the product</h2>
+                            <p>Provide the product identity and return batch.</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-grid">
+
+                        <article class="metric-card">
+                            <label class="metric-label" for="product_name">
+                                PRODUCT NAME
+                            </label>
+                            <input
+                                id="product_name"
+                                name="product_name"
+                                type="text"
+                                maxlength="120"
+                                required
+                                placeholder="Wireless headphones"
+                                value="{{ form.get('product_name', '') }}"
+                            >
+                        </article>
+
+                        <article class="metric-card">
+                            <label class="metric-label" for="sku">SKU</label>
+                            <input
+                                id="sku"
+                                name="sku"
+                                type="text"
+                                maxlength="60"
+                                required
+                                placeholder="WH-204"
+                                value="{{ form.get('sku', '') }}"
+                            >
+                        </article>
+
+                        <article class="metric-card">
+                            <label class="metric-label" for="batch_number">
+                                BATCH NUMBER
+                            </label>
+                            <input
+                                id="batch_number"
+                                name="batch_number"
+                                type="text"
+                                maxlength="60"
+                                required
+                                placeholder="BATCH-001"
+                                value="{{ form.get('batch_number', '') }}"
+                            >
+                        </article>
+
+                        <article class="metric-card">
+                            <label class="metric-label" for="quantity">
+                                RETURN QUANTITY
+                            </label>
+                            <input
+                                id="quantity"
+                                name="quantity"
+                                type="number"
+                                min="1"
+                                step="1"
+                                required
+                                placeholder="10"
+                                value="{{ form.get('quantity', '') }}"
+                            >
+                            <p class="metric-note">Number of units being returned.</p>
+                        </article>
+
+                    </div>
+                </section>
+
+                <section class="content-section">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">02 / INSPECTION</p>
+                            <h2>Condition and reason</h2>
+                            <p>Record why the product was returned and its condition.</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-grid">
+
+                        <article class="metric-card">
+                            <label class="metric-label" for="reason">
+                                RETURN REASON
+                            </label>
+                            <select id="reason" name="reason" required>
+                                <option value="">Select a reason</option>
+                                {% for item in [
+                                    'Defective product',
+                                    'Damaged in transit',
+                                    'Customer changed mind',
+                                    'Wrong item delivered',
+                                    'Missing components',
+                                    'Repeated fault',
+                                    'Other'
+                                ] %}
+                                <option value="{{ item }}"
+                                    {% if form.get('reason') == item %}selected{% endif %}>
+                                    {{ item }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </article>
+
+                        <article class="metric-card">
+                            <label class="metric-label" for="grade">
+                                CONDITION GRADE
+                            </label>
+                            <select id="grade" name="grade" required>
+                                <option value="">Select a grade</option>
+                                {% for grade, description in [
+                                    ('A', 'A — Like new'),
+                                    ('B', 'B — Minor wear'),
+                                    ('C', 'C — Significant wear'),
+                                    ('D', 'D — Damaged / unusable')
+                                ] %}
+                                <option value="{{ grade }}"
+                                    {% if form.get('grade') == grade %}selected{% endif %}>
+                                    {{ description }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <p class="metric-note">
+                                Select the condition based on inspection.
+                            </p>
+                        </article>
+
+                    </div>
+                </section>
+
+                <section class="content-section">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">03 / FINANCIAL INFORMATION</p>
+                            <h2>Recovery inputs</h2>
+                            <p>Enter unit prices and supplier eligibility.</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-grid">
+
+                        <article class="metric-card">
+                            <label class="metric-label" for="cost_price">
+                                UNIT COST (₹)
+                            </label>
+                            <input
+                                id="cost_price"
+                                name="cost_price"
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                required
+                                placeholder="1400"
+                                value="{{ form.get('cost_price', '') }}"
+                            >
+                        </article>
+
+                        <article class="metric-card">
+                            <label class="metric-label" for="selling_price">
+                                NEW SELLING PRICE (₹)
+                            </label>
+                            <input
+                                id="selling_price"
+                                name="selling_price"
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                required
+                                placeholder="2500"
+                                value="{{ form.get('selling_price', '') }}"
+                            >
+                        </article>
+
+                        <article class="metric-card">
+                            <label class="metric-label" for="vendor_eligible_quantity">
+                                VENDOR-ELIGIBLE UNITS
+                            </label>
+                            <input
+                                id="vendor_eligible_quantity"
+                                name="vendor_eligible_quantity"
+                                type="number"
+                                min="0"
+                                step="1"
+                                required
+                                placeholder="0"
+                                value="{{ form.get('vendor_eligible_quantity', '0') }}"
+                            >
+                            <p class="metric-note">
+                                Must not exceed the total return quantity.
+                            </p>
+                        </article>
+
+                    </div>
+                </section>
+
+                <section class="content-section">
+                    <div class="approval-panel">
+                        <div>
+                            <h3>Ready to register?</h3>
+                            <p class="muted">
+                                Save this record as a return request.
+                                Supplier and inventory actions will not be executed.
+                            </p>
+                        </div>
+
+                        <button type="submit">Save return request</button>
+                    </div>
+                </section>
+
+            </form>
+
+        </div>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

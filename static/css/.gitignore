@@ -1,0 +1,22 @@
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+
+# Local development
+.vscode/
+*.log
+
+# Database backups
+*.db-journal
+*.sqlite-journal
+git 
+returniq.db

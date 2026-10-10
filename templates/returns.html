@@ -1,0 +1,228 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b111b">
+    <title>Return Requests | ReturnIQ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="app-shell">
+
+    <aside class="sidebar" id="sidebar">
+        <a class="brand" href="{{ url_for('home') }}">
+            <span class="brand-symbol">R</span>
+            <span class="brand-name">Return<span>IQ</span></span>
+        </a>
+
+        <div class="workspace-label">WORKSPACE</div>
+
+        <nav class="navigation" aria-label="Main navigation">
+            <a class="nav-link" href="{{ url_for('home') }}">Overview</a>
+            <a class="nav-link active" href="{{ url_for('returns_list') }}">Return requests</a>
+            <a class="nav-link" href="{{ url_for('sample_return_detail') }}">Recovery analysis</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <span class="connection-dot"></span>
+            <div>
+                <strong>Application status</strong>
+                <p>Development environment</p>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-panel">
+
+        <header class="topbar">
+            <div class="page-context">
+                <a href="{{ url_for('home') }}">RETURNIQ</a>
+                <span class="context-separator">/</span>
+                <span>RETURN REQUESTS</span>
+            </div>
+            <span class="environment-tag">RETURNS MANAGEMENT</span>
+        </header>
+
+        <div class="page-content">
+
+            <section class="intro">
+                <div>
+                    <p class="eyebrow">OPERATIONS / RETURN MANAGEMENT</p>
+                    <h1>Return<br>requests<span>.</span></h1>
+                    <p class="intro-copy">
+                        Track returned products, inspect reported conditions,
+                        and review records awaiting disposition.
+                    </p>
+                </div>
+
+                <div class="intro-meta">
+                    <span class="meta-line"></span>
+                    <p>RECORDS / {{ returns|length }}</p>
+                    <p>DATA SOURCE / APPLICATION DATABASE</p>
+                </div>
+            </section>
+
+            <section class="metric-grid" aria-label="Return request summary">
+
+                <article class="metric-card metric-highlight">
+                    <p class="metric-label">TOTAL REQUESTS</p>
+                    <div class="metric-value">{{ returns|length }}</div>
+                    <p class="metric-note">Records currently displayed</p>
+                </article>
+
+                <article class="metric-card">
+                    <p class="metric-label">PENDING REVIEW</p>
+                    <div class="metric-value">
+                        {{ returns|selectattr('status', 'equalto', 'Pending')|list|length }}
+                    </div>
+                    <p class="metric-note">Requests with Pending status</p>
+                </article>
+
+                <article class="metric-card">
+                    <p class="metric-label">TOTAL RETURN UNITS</p>
+                    <div class="metric-value">
+                        {{ returns|sum(attribute='quantity') }}
+                    </div>
+                    <p class="metric-note">Units across listed requests</p>
+                </article>
+
+                <article class="metric-card">
+                    <p class="metric-label">UNIQUE PRODUCTS</p>
+                    <div class="metric-value">
+                        {{ returns|map(attribute='sku')|unique|list|length }}
+                    </div>
+                    <p class="metric-note">Distinct SKUs in the records</p>
+                </article>
+
+            </section>
+
+            <section class="content-section">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">RETURN REGISTER</p>
+                        <h2>All requests</h2>
+                        <p>Search registered products and review their current status.</p>
+                    </div>
+
+                    <a href="{{ url_for('create_return') }}"
+                       class="dashboard-primary-action">
+                        + New return
+                    </a>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Request register</h2>
+                        <span>{{ returns|length }} records</span>
+                    </div>
+
+                    <div class="table-toolbar">
+                        <div class="search-wrapper">
+                            <label for="dashboardSearch" class="metric-label">
+                                SEARCH REQUESTS
+                            </label>
+                            <input
+                                type="search"
+                                id="dashboardSearch"
+                                placeholder="Search product, SKU, batch or status..."
+                                aria-label="Search return requests"
+                            >
+                        </div>
+                    </div>
+
+                    {% if returns %}
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>REFERENCE</th>
+                                    <th>PRODUCT</th>
+                                    <th>BATCH</th>
+                                    <th>QUANTITY</th>
+                                    <th>GRADE</th>
+                                    <th>REASON</th>
+                                    <th>STATUS</th>
+                                    <th>CREATED</th>
+                                    <th>ACTION</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for item in returns %}
+                                <tr>
+                                    <td>
+                                        <strong>#{{ item['id'] }}</strong>
+                                    </td>
+
+                                    <td>
+                                        <strong>{{ item['product_name'] }}</strong>
+                                        <br>
+                                        <small>{{ item['sku'] }}</small>
+                                    </td>
+
+                                    <td>{{ item['batch_number'] }}</td>
+                                    <td>{{ item['quantity'] }}</td>
+                                    <td>{{ item['grade'] }}</td>
+                                    <td>{{ item['reason'] }}</td>
+
+                                    <td>
+                                        <span class="status-pill">
+                                            {{ item['status'] }}
+                                        </span>
+                                    </td>
+
+                                    <td>{{ item['created_at'] }}</td>
+
+                                    <td>
+                                        <a
+                                            href="{{ url_for('return_detail', return_id=item['id']) }}"
+                                            class="table-action"
+                                        >
+                                            View details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="empty-search-state" hidden>
+                        No matching return requests found.
+                    </div>
+
+                    {% else %}
+                    <div class="empty-state">
+                        <h3>No return requests yet</h3>
+                        <p>
+                            Register your first returned product to start
+                            tracking its condition and recovery options.
+                        </p>
+                        <a href="{{ url_for('create_return') }}"
+                           class="dashboard-primary-action">
+                            Create first return
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <p class="detail-disclaimer">
+                Request information is loaded from the application database.
+                Recovery calculations are estimates based on configured
+                assumptions and do not represent confirmed financial recovery.
+                Final disposition decisions require review.
+            </p>
+
+        </div>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+</html>
+```

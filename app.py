@@ -1,3 +1,4 @@
+
 import sqlite3
 from pathlib import Path
 
@@ -29,6 +30,24 @@ REFURBISHMENT_COST = 250
 RESALE_PERCENTAGE = 0.75
 VENDOR_CREDIT_PERCENTAGE = 0.60
 LIQUIDATION_PERCENTAGE = 0.35
+
+
+# ---------------- QUANTITY VALIDATION ----------------
+
+def get_valid_allocation(quantity, eligible_quantity):
+    """
+    Return safe allocation quantities for calculations.
+
+    The original database values are not modified. Invalid records
+    remain available to the agent for issue detection.
+    """
+    quantity = max(int(quantity or 0), 0)
+    eligible_quantity = int(eligible_quantity or 0)
+
+    eligible_quantity = min(max(eligible_quantity, 0), quantity)
+    refurbishment_quantity = quantity - eligible_quantity
+
+    return eligible_quantity, refurbishment_quantity
 
 
 # ---------------- DATABASE ----------------
@@ -64,32 +83,58 @@ def init_db():
 @app.route("/")
 def home():
     with get_db() as connection:
+
         stats_row = connection.execute("""
             SELECT
                 COUNT(*) AS total_requests,
-                COALESCE(SUM(quantity), 0) AS total_units,
-                COUNT(DISTINCT sku) AS unique_products,
-
-                COALESCE(SUM(vendor_eligible_quantity), 0)
-                    AS vendor_eligible_units,
 
                 COALESCE(SUM(
-                    quantity - vendor_eligible_quantity
+                    CASE
+                        WHEN quantity > 0 THEN quantity
+                        ELSE 0
+                    END
+                ), 0) AS total_units,
+
+                COUNT(DISTINCT sku) AS unique_products,
+
+                COALESCE(SUM(
+                    CASE
+                        WHEN quantity <= 0 THEN 0
+                        WHEN vendor_eligible_quantity < 0 THEN 0
+                        WHEN vendor_eligible_quantity > quantity
+                            THEN quantity
+                        ELSE vendor_eligible_quantity
+                    END
+                ), 0) AS vendor_eligible_units,
+
+                COALESCE(SUM(
+                    CASE
+                        WHEN quantity <= 0 THEN 0
+                        WHEN vendor_eligible_quantity < 0 THEN quantity
+                        WHEN vendor_eligible_quantity > quantity THEN 0
+                        ELSE quantity - vendor_eligible_quantity
+                    END
                 ), 0) AS refurbishment_units,
 
                 COALESCE(SUM(
-                    CASE WHEN LOWER(TRIM(status)) = 'pending'
-                    THEN 1 ELSE 0 END
+                    CASE
+                        WHEN LOWER(TRIM(status)) = 'pending'
+                        THEN 1 ELSE 0
+                    END
                 ), 0) AS pending_requests,
 
                 COALESCE(SUM(
-                    CASE WHEN LOWER(TRIM(status)) = 'approved'
-                    THEN 1 ELSE 0 END
+                    CASE
+                        WHEN LOWER(TRIM(status)) = 'approved'
+                        THEN 1 ELSE 0
+                    END
                 ), 0) AS approved_requests,
 
                 COALESCE(SUM(
-                    CASE WHEN LOWER(TRIM(status)) = 'rejected'
-                    THEN 1 ELSE 0 END
+                    CASE
+                        WHEN LOWER(TRIM(status)) = 'rejected'
+                        THEN 1 ELSE 0
+                    END
                 ), 0) AS rejected_requests
 
             FROM returns
@@ -124,9 +169,9 @@ def home():
         """).fetchall()
 
     # ---------------- AGENT ANALYSIS ----------------
+    # Analyze original database records, not corrected copies.
+    # This ensures invalid saved quantities are still flagged.
 
-    # Analyze actual records from the database.
-    # The agent uses explicit rules, not an LLM.
     agent_analysis = analyze_returns(all_returns)
 
     # ---------------- RECOVERY CALCULATIONS ----------------
@@ -136,9 +181,12 @@ def home():
     liquidation_recovery_total = 0.0
 
     for record in all_returns:
-        quantity = record["quantity"]
-        eligible_quantity = record["vendor_eligible_quantity"]
-        remaining_quantity = quantity - eligible_quantity
+        quantity = max(int(record["quantity"] or 0), 0)
+
+        eligible_quantity, remaining_quantity = get_valid_allocation(
+            quantity,
+            record["vendor_eligible_quantity"],
+        )
 
         vendor_result = calculate_vendor_return_recovery(
             record["cost_price"],
@@ -373,8 +421,18 @@ def review_return(return_id):
 # ---------------- RETURN DETAILS ----------------
 
 def build_return_detail(record):
-    total_quantity = record["quantity"]
-    vendor_eligible_quantity = record["vendor_eligible_quantity"]
+    total_quantity = max(int(record["quantity"] or 0), 0)
+
+    reported_eligible_quantity = int(
+        record["vendor_eligible_quantity"] or 0
+    )
+
+    vendor_eligible_quantity, refurbishment_quantity = (
+        get_valid_allocation(
+            total_quantity,
+            reported_eligible_quantity,
+        )
+    )
 
     cost_price = record["cost_price"]
     new_selling_price = record["selling_price"]
@@ -397,10 +455,6 @@ def build_return_detail(record):
         total_quantity,
     )
 
-    refurbishment_quantity = (
-        total_quantity - vendor_eligible_quantity
-    )
-
     allocation_recovery = calculate_allocation_recovery(
         vendor_quantity=vendor_eligible_quantity,
         refurbishment_quantity=refurbishment_quantity,
@@ -413,7 +467,13 @@ def build_return_detail(record):
         "return_id": record["id"],
         "status": record["status"],
         "total_quantity": total_quantity,
+
+        # Safe quantity used for calculations.
         "vendor_eligible_quantity": vendor_eligible_quantity,
+
+        # Original saved quantity, retained for transparency.
+        "reported_vendor_eligible_quantity": reported_eligible_quantity,
+
         "refurbishment_quantity": refurbishment_quantity,
         "cost_price": cost_price,
         "new_selling_price": new_selling_price,

@@ -3,3 +3,9 @@ __pycache__/
 *.py[cod]
 .venv/
 .env
+
+# Local application database
+returniq.db
+
+# Keep local environment and generated files out of Git
+*.log
